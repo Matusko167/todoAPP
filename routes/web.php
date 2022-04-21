@@ -18,11 +18,12 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Auth::routes();
 
 Route::get('/tasks', 'App\Http\Controllers\TasksController@index');
-Route::post('/tasks', 'App\Http\Controllers\TasksController@store');
-Route::delete('/tasks/{task}', 'App\Http\Controllers\TasksController@destroy');
+Route::post('/tasks', 'App\Http\Controllers\TasksController@store')->name('tasks.store')->middleware('web');
 Route::post('/tasks/{task}', 'App\Http\Controllers\TasksController@makeDone')->name('tasks.makeDone');
-Route::post('/tasks/share/{task}', 'App\Http\Controllers\TasksController@share')->name('tasks.share');
+Route::post('/tasks/share/{task}', 'App\Http\Controllers\TasksController@share')->name('tasks.share')->middleware('web');
+Route::get('/tasks/filter', 'App\Http\Controllers\TasksController@filter')->name('tasks.filter')->middleware('web');
 
+
+Auth::routes();

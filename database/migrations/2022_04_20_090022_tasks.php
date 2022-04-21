@@ -19,6 +19,7 @@ return new class extends Migration
             $table->boolean('status');
             $table->string('owner');
             $table->timestamps();
+            $table->foreignId('category_id');
         });
     }
 

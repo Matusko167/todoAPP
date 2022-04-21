@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Task;
+use App\Models\Category;
 use Illuminate\Support\Facades\Auth;
+use App\Helpers\CollectionHelper;
 
 class TasksController extends Controller
 {
@@ -19,11 +21,52 @@ class TasksController extends Controller
         $userID = Auth::id();
         if($userID != null){
             $tasks = User::find($userID)->tasks;
+        } else {
+            $tasks = null;
         }
-        if($tasks != null){
-            return view('tasks.index',compact('tasks'));
+        $tasks = CollectionHelper::paginate($tasks, 10);
+        return view('tasks.index',compact('tasks'));
+    }
+
+    public function filter(Request $request)
+    {
+        $request->validate([
+            'category' => 'required'
+        ]);
+        $userID = Auth::id();
+        if($userID != null){
+        switch($request->category){
+            case('1'):
+                $tasks = User::find($userID)->tasks->where('category_id', 1);
+                break;
+            case('2'):
+                $tasks = User::find($userID)->tasks->where('category_id', 2);
+                break;
+            case('3'):
+                $tasks = User::find($userID)->tasks->where('category_id', 3);
+                break;
+            case('4'):
+                $tasks = User::find($userID)->tasks->where('category_id', 4);
+                break;
+            case('5'):
+                return $this->index();
+            case('6'):
+                $tasks = User::find($userID)->tasks->where('owner', Auth::user()->name);
+                break;
+            case('7'):
+                $tasks = User::find($userID)->tasks->where('owner', '!=' , Auth::user()->name);
+                break;
+            case('8'):
+                $tasks = User::find($userID)->tasks->where('status', true);
+                break;
+            case('9'):
+                $tasks = User::find($userID)->tasks->where('status', false);
+                break;
         }
-        return view('tasks.index');
+        } else {
+            $tasks = null;
+        }
+        return view('tasks.index',compact('tasks'));
     }
 
     /**
@@ -34,35 +77,28 @@ class TasksController extends Controller
      */
     public function store(Request $request)
     {
-
-        $request->validate(
-            ['todo' => 'required',]
-        );
+        $request->validate([
+            'todo' => 'required',
+            'category' => 'required'
+        ]);
+        if($request->category == -1){
+            return $this->index()->withErrors(['msg' => 'You did not enter a category!!!']);;
+        }
 
         $task = new Task;
 
         $task->todo = $request->todo;
+        $task->category_id = $request->category;
         $task->status = 0;
-        $task->owner = Auth::user()->name;
-
+        $ownerName = Auth::user()->name;
+        $task->owner = $ownerName;
         $task->save();
 
-        $task->users()->attach(Auth::id());
+        $task->users()->attach(Auth::id($ownerName));
 
-        return redirect()->route('tasks.index')
-                        ->with('success','Task created successfully.');
+        return $this->index();
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy($id)
-    {
-        //
-    }
 
     /**
      * Update task to done
@@ -73,7 +109,6 @@ class TasksController extends Controller
     public function makeDone($id)
     {
         Task::where('id', $id)->update(array('status' => '1'));
-
         return $this->index();
     }
 
@@ -89,10 +124,16 @@ class TasksController extends Controller
         $request->validate([
             'name' => 'required',
         ]);
+        $user = User::where('name', $request->name)->first();
+        if($user != null){
+            $task = $user->tasks()->where('task_id', $id)->first();
+            if ($task == null) {
+                $user->tasks()->attach($id);
+            }
+            return $this->index()->with('message', 'Share succes!!!');;
+        } else {
+            return $this->index()->withErrors(['msg' => 'User doesnt exist!!!']);;
+        }
 
-        User::where('name', $request->name)->tasks()->attach($id);
-
-        return redirect()->route('tasks.index')
-                        ->with('success','Task created successfully.');
     }
 }

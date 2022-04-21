@@ -11,11 +11,16 @@ class Task extends Model
     protected $fillable = [
         'todo',
         'status',
-        'owner',
+        'owner'
     ];
 
     public function users()
     {
-        return $this->belongsToMany(User::class , 'role_user');
+        return $this->belongsToMany(User::class , 'task_user');
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
     }
 }
